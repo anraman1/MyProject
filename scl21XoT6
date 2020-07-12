@@ -1,0 +1,8 @@
+eval "SCLS=( ${X_SCLS[*]} )"
+/usr/bin/scl_enabled rh-postgresql10
+if [ $? != 0 ]; then
+  SCLS+=(rh-postgresql10)
+  export X_SCLS=$(printf '%q ' "${SCLS[@]}")
+. /opt/rh/rh-postgresql10//enable
+fi
+/var/lib/awx/venv/awx/bin/uwsgi -s /var/run/tower/uwsgi.sock --module=awx.wsgi:application --vacuum --processes=5 --harakiri=120 --no-orphans --master --max-requests=1000 --lazy-apps -b 32768 --stats /var/lib/awx/uwsgi.stats --chmod-socket=660
