@@ -1,0 +1,71 @@
+---
+- name: system configuration collection 
+  hosts: all
+  gather_facts: yes
+  tasks: 
+    - name: Collecting system information
+      debug:
+        msg: "{{ ansible_hostname }}"
+
+    - name: print configuration 
+      set_fact:
+        hostname: "{{ ansible_hostname }}"
+        kernel: " {{ ansible_kernel }} "
+        cpu: "{{ ansible_processor_vcpus }}" 
+        memory: "{{ ansible_memtotal_mb }}" 
+
+    - name: checking app-tier file
+      shell: grep -P "(app-tier)" /var/tmp/config.json |sed s/','/''/g|awk -F':' ' { print $2 }' 
+      register: apptier 
+      shell: grep -P "(app-subtier)" /var/tmp/config.json |sed s/','/''/g|awk -F':' ' { print $2 }'
+      register: subapptier
+      ignore_errors: True
+   
+    - name: print application 
+      set_fact:
+        application: "{{ apptier.stdout }}"
+      when:  apptier is defined and apptier.rc == 0 
+    
+    - name: checking  config for sub tier 
+      shell: grep -P "(app-subtier)" /var/tmp/config.json |sed s/','/''/g|awk -F':' ' { print $2 }' 
+      register: subapptier 
+      ignore_errors: True
+
+# Debug 
+    - name: Debug block
+      debug:
+        var: subapptier
+
+    - name: print subapplication 
+      set_fact:
+        subapplication: "{{ subapptier.stdout }}"
+      when:  subapptier is defined 
+    - name: Debug subapplication
+      debug:
+        var: subapplication
+    
+    - name: print subapplication 
+      set_fact:
+        subapplication: "NA" 
+      when:  subapptier is defined and subapptier.stdout == ""  
+
+    - name: print application 
+      set_fact:
+        application: "NA" 
+      when:  apptier is defined and apptier.stdout == "" 
+
+
+    - name: checking SOE
+      shell: cat /etc/SOErelease
+      register: SOE
+      ignore_errors: True
+  
+    - name: Set SOE
+      set_fact:
+        SOErelease: "{{ SOE.stdout}}"
+      when: SOE is defined 
+    - name: Set SOE
+      set_fact:
+        SOErelease: "SOE not installed"
+      when: SOE is defined and SOE.stdout == "" 
+...
